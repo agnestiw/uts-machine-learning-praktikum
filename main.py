@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from imblearn.combine import SMOTEENN
 from collections import Counter
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 # --- Visualisasi Outlier ---
 def tampilkan_boxplot_outliers(df, columns, prefix=''):
@@ -124,6 +126,108 @@ print("\n[INFO] Data yang sudah bersih telah disimpan ke 'train_cleaned.csv'")
 
 
 
+# ================================================================
+# --- Langkah 2: Transformasi dengan MinMaxScaler ---
+# ================================================================
+print("\n--- Langkah 2: Transformasi dengan MinMaxScaler ---")
+# Pilih kolom numerik yang akan di-scale (Age, Fare, SibSp, Parch)
+kolom_numerik_scale = ['Age', 'Fare', 'SibSp', 'Parch']
+
+# Simpan copy sebelum scaling untuk visualisasi perbandingan
+df_before_scaling = df.copy()
+
+# Inisialisasi MinMaxScaler
+scaler = MinMaxScaler()
+
+# Terapkan scaling pada kolom numerik
+df[kolom_numerik_scale] = scaler.fit_transform(df[kolom_numerik_scale])
+
+print("[OK] Transformasi MinMaxScaler telah diterapkan pada kolom numerik.")
+print("\n--- 5 Baris Pertama Data Setelah Scaling ---")
+print(df.head())
+
+# Simpan data setelah scaling
+df.to_csv('train_scaled.csv', index=False)
+print("\n[INFO] Data setelah scaling disimpan ke 'train_scaled.csv'")
+
+# --- Visualisasi distribusi sebelum & sesudah scaling ---
+print("\n[INFO] Menampilkan distribusi sebelum & sesudah MinMaxScaler...")
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+for i, kolom in enumerate(kolom_numerik_scale):
+    axes[i//2, i%2].hist(df_before_scaling[kolom], bins=20, alpha=0.5, label='Sebelum', color='red')
+    axes[i//2, i%2].hist(df[kolom], bins=20, alpha=0.5, label='Sesudah', color='blue')
+    axes[i//2, i%2].set_title(f"Distribusi {kolom}: Sebelum vs Sesudah Scaling")
+    axes[i//2, i%2].legend()
+
+plt.tight_layout()
+plt.show()
+
+
+
+# ================================================================
+# --- Langkah 3: Ekstraksi Fitur (LDA) ---
+# ================================================================
+
+# Pisahkan fitur & label
+X = df.drop(['Survived', 'PassengerId', 'Name', 'Ticket'], axis=1)
+
+# One-hot encoding kategorikal
+X = pd.get_dummies(X, columns=['Sex', 'Embarked'], drop_first=True)
+y = df['Survived']
+print("\n--- Langkah 3: Transformasi & Ekstraksi Fitur (LDA) ---")
+print(f"Jumlah fitur sebelum LDA: {X.shape[1]}")
+
+# Scaling ke range [0,1]
+scaler = MinMaxScaler()
+X_scaled = scaler.fit_transform(X)
+
+# LDA: jumlah komponen maksimal = jumlah kelas - 1 (di Titanic = 1)
+lda = LDA(n_components=1)
+X_lda = lda.fit_transform(X_scaled, y)
+print(f"Bentuk data setelah LDA: {X_lda.shape}")
+
+# Konversi hasil LDA ke DataFrame
+X_lda_df = pd.DataFrame(X_lda, columns=['LDA_Feature'])
+y_df = pd.DataFrame(y, columns=['Survived'])
+
+# Gabungkan kembali
+df_lda = pd.concat([X_lda_df, y_df.reset_index(drop=True)], axis=1)
+
+print("\n--- 5 Baris Pertama Dataset Setelah LDA ---")
+print(df_lda.head())
+
+# Simpan hasil ekstraksi LDA
+df_lda.to_csv('train_lda.csv', index=False)
+print("\n[INFO] Dataset hasil ekstraksi LDA disimpan ke 'train_lda.csv'")
+
+# ================================================================
+# Visualisasi distribusi hasil LDA
+# ================================================================
+print("\n[INFO] Menampilkan distribusi hasil LDA berdasarkan kelas Survived...")
+
+plt.figure(figsize=(8, 6))
+sns.stripplot(
+    x="Survived",
+    y="LDA_Feature",
+    data=df_lda,
+    hue="Survived",
+    palette="muted",
+    dodge=False,
+    jitter=True,   
+    alpha=0.7
+)
+
+plt.title("Distribusi Fitur LDA berdasarkan Label Survived")
+plt.xlabel("Survived")
+plt.ylabel("LDA Feature")
+plt.legend(title="Survived")
+plt.show()
+
+
+
+
+
 
 
 # ================================================================
@@ -140,7 +244,7 @@ X = pd.get_dummies(X, columns=['Sex', 'Embarked'], drop_first=True)
 # Label target
 y = df['Survived']
 
-print("\n--- Langkah 3: Imbalanced Data (SMOTE-ENN) ---")
+print("\n--- Langkah 4: Imbalanced Data (SMOTE-ENN) ---")
 print(f"Distribusi sebelum SMOTE-ENN: {Counter(y)}")
 
 # Terapkan SMOTE-ENN
