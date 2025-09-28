@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from imblearn.combine import SMOTEENN
+from collections import Counter
 
 # --- Visualisasi Outlier ---
 def tampilkan_boxplot_outliers(df, columns, prefix=''):
@@ -119,3 +121,57 @@ print(df.head())
 # Menyimpan data yang sudah bersih ke file CSV baru
 df.to_csv('train_cleaned.csv', index=False)
 print("\n[INFO] Data yang sudah bersih telah disimpan ke 'train_cleaned.csv'")
+
+
+
+
+
+# ================================================================
+# --- Langkah 4: Menangani Imbalanced Data dengan SMOTE-ENN ---
+# imbalanced data aryo
+# ================================================================
+
+# Drop kolom yang tidak relevan untuk fitur
+X = df.drop(['Survived', 'PassengerId', 'Name', 'Ticket'], axis=1)
+
+# Encoding kolom kategorikal (Sex, Embarked) ke numerik
+X = pd.get_dummies(X, columns=['Sex', 'Embarked'], drop_first=True)
+
+# Label target
+y = df['Survived']
+
+print("\n--- Langkah 3: Imbalanced Data (SMOTE-ENN) ---")
+print(f"Distribusi sebelum SMOTE-ENN: {Counter(y)}")
+
+# Terapkan SMOTE-ENN
+smote_enn = SMOTEENN(random_state=42)
+X_res, y_res = smote_enn.fit_resample(X, y)
+
+print(f"Distribusi sesudah SMOTE-ENN: {Counter(y_res)}")
+
+# Konversi kembali ke DataFrame
+X_resampled = pd.DataFrame(X_res, columns=X.columns)
+y_resampled = pd.Series(y_res, name='Survived')
+
+# Gabungkan kembali jadi satu DataFrame
+df_balanced = pd.concat([X_resampled, y_resampled], axis=1)
+
+print("\n--- 5 Baris Pertama Dataset Setelah SMOTE-ENN ---")
+print(df_balanced.head())
+
+# Simpan hasil balancing
+df_balanced.to_csv('train_balanced.csv', index=False)
+print("\n[INFO] Dataset hasil balancing disimpan ke 'train_balanced.csv'")
+
+# ================================================================
+# --- Visualisasi Distribusi Sebelum & Sesudah Balancing ---
+# ================================================================
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+sns.countplot(x=y, ax=axes[0])
+axes[0].set_title("Distribusi Sebelum SMOTE-ENN")
+
+sns.countplot(x=y_res, ax=axes[1])
+axes[1].set_title("Distribusi Sesudah SMOTE-ENN")
+
+plt.show()
