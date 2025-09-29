@@ -13,7 +13,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 # ================================================================
 def tampilkan_boxplot_outliers(df, columns, prefix=''):
     """Fungsi untuk menampilkan boxplot secara interaktif guna mendeteksi outlier."""
-    print(f"--- 4. Menampilkan Visualisasi Outlier ({prefix}) ---")
+    print(f"--- Menampilkan Visualisasi Outlier ({prefix}) ---")
     for kolom in columns:
         plt.figure(figsize=(8, 6))
         sns.boxplot(x=df[kolom])
@@ -110,10 +110,10 @@ for kolom in kolom_numerik:
 
 tampilkan_boxplot_outliers(df, kolom_numerik, prefix="Setelah_Handler")
 
-print("\n--- Informasi Akhir Dataset Setelah Dibersihkan ---")
+print("\n--- Informasi Akhir Dataset Setelah Dilakukan Penanganan Missing Value dan Outliner ---")
 df.info()
 
-print("\n--- 5 Baris Pertama Data yang Sudah Dibersihkan ---")
+print("\n--- Baris Pertama Data yang Sudah Dilakukan Penanganan Missing Value dan Outliner ---")
 print(df.head())
 
 # Menyimpan data yang sudah bersih ke file CSV baru
